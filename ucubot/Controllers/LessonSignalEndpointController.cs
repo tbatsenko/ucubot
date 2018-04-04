@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.Design;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
+using Dapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging.Console;
 using MySql.Data.MySqlClient;
 using ucubot.Model;
 
@@ -27,9 +26,6 @@ namespace ucubot.Controllers
         {
             var connectionString = _configuration.GetConnectionString("BotDatabase");
 
-            var dataTable = new DataTable();
-            var obj = new List<LessonSignalDto>();
-
             using (var myConnection = new MySqlConnection(connectionString))
             {
                 try
@@ -43,32 +39,12 @@ namespace ucubot.Controllers
 
                 // Write a query, which selects all data from the table lesson signal
                 //                                                             and stores it in a DataTable object
+               // conn is a SqlConnection
+                var queryResult = myConnection.Query<LessonSignalDto>("SELECT [Timestamp], [SignalType],[student_id] FROM lesson_signal LEFT JOIN student ON (lesson_signal.student_id = student.user_id)");
 
-                var myCommand = new MySqlCommand("SELECT * FROM lesson_signal", myConnection);
-                var dataAdapter = new MySqlDataAdapter(myCommand);
-
-                dataAdapter.GetFillParameters();
-                
-                if (dataAdapter.ToString() != null) { dataAdapter.Fill(dataTable);}
-
-                // Iterate over DataTable rows and convert each into a LessonSignalDto object.
-
-
-                foreach (DataRow row in dataTable.Rows)
-                {
-                    var currDto = new LessonSignalDto
-                    {
-                        Id = (int) row["Id"],
-                        Type = (LessonSignalType) row["SignalType"],
-                        UserId = (string) row["UserId"]
-                    };
-
-                    obj.Add(currDto);
-                }
-
+                return queryResult;
             }
 
-            return obj;
         }
 
         [HttpGet("{id}")]
@@ -91,27 +67,12 @@ namespace ucubot.Controllers
                 // Write a query, which selects all data from the table lesson signal
                 //                                                             and stores it in a DataTable object
 
-                var myCommand = new MySqlCommand("SELECT * FROM lesson_signal WHERE Id=" + id, myConnection);
-                var dataAdapter = new MySqlDataAdapter(myCommand);
+                var queryResult = myConnection.Query<LessonSignalDto>("SELECT [Timestamp], [SignalType],[student_id] FROM lesson_signal LEFT JOIN student ON (lesson_signal.student_id = student.user_id) WHERE Id=" + id);
 
-                dataAdapter.Fill(dataTable);
-
-                // Iterate over DataTable rows and convert each into a LessonSignalDto object.
-
-                foreach (DataRow row in dataTable.Rows)
-                {
-                    var currDto = new LessonSignalDto
-                    {
-                        Timestamp = (DateTime) row["Timestamp"],
-                        Type = (LessonSignalType) row["SignalType"],
-                        UserId = (string) row["UserId"]
-                    };
-                    return currDto;
-                }
-
+                
+                return queryResult.AsList()[0];
+               
             }
-
-            return null;
         }
 
         [HttpPost]
@@ -136,14 +97,25 @@ namespace ucubot.Controllers
                     return BadRequest();
                 }
                 
-                const string mysqlCmdString = "INSERT INTO lesson_signal (UserId, SignalType) VALUES (@param1, @param2)";
+                var check_UserId = new MySqlCommand("SELECT COUNT(*) FROM lesson_signal WHERE student_id=(@userID)" , myConnection);
+                check_UserId.Parameters.AddWithValue("@userID", userId);
+                var UserExist = (int)check_UserId.ExecuteScalar();
+
+                if(UserExist > 0)
+                {
+                    // Student with this ID already exist
+                    return BadRequest();
+                }
+
+                // Student with this ID doesn't exist
+                const string mysqlCmdString =
+                    "INSERT INTO lesson_signal (user_id, SignalType) VALUES (@param1, @param2)";
                 var cmd = new MySqlCommand(mysqlCmdString, myConnection);
                 cmd.Parameters.Add("@param1", MySqlDbType.Text).Value = userId;
                 cmd.Parameters.Add("@param2", MySqlDbType.Int32).Value = signalType;
                 cmd.CommandType = CommandType.Text;
-                cmd.ExecuteNonQuery();
+                cmd.ExecuteNonQuery();   
             }
-
             return Accepted();
         }
 
