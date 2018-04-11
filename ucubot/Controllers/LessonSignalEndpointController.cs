@@ -40,9 +40,8 @@ namespace ucubot.Controllers
                 // Write a query, which selects all data from the table lesson signal
                 //                                                             and stores it in a DataTable object
                // conn is a SqlConnection
-                var queryResult = myConnection.Query<LessonSignalDto>("SELECT [Timestamp], [SignalType],[student_id] FROM lesson_signal LEFT JOIN student ON (lesson_signal.student_id = student.user_id)");
 
-                return queryResult;
+                return myConnection.Query<LessonSignalDto>("SELECT lesson_signal.Id Id, lesson_signal.Timestamp Timestamp, lesson_signal.SignalType Type, lesson_signal.student_id UserId FROM lesson_signal LEFT JOIN student ON (lesson_signal.student_id = student.user_id);").ToList();
             }
 
         }
@@ -52,7 +51,6 @@ namespace ucubot.Controllers
         {
             var connectionString = _configuration.GetConnectionString("BotDatabase");
 
-            var dataTable = new DataTable();
             using (var myConnection = new MySqlConnection(connectionString))
             {
                 try
@@ -64,13 +62,10 @@ namespace ucubot.Controllers
                     Console.WriteLine(e.ToString());
                 }
 
-                // Write a query, which selects all data from the table lesson signal
-                //                                                             and stores it in a DataTable object
-
-                var queryResult = myConnection.Query<LessonSignalDto>("SELECT [Timestamp], [SignalType],[student_id] FROM lesson_signal LEFT JOIN student ON (lesson_signal.student_id = student.user_id) WHERE Id=" + id);
+                var queryResult = myConnection.Query<LessonSignalDto>("SELECT lesson_signal.Id Id, lesson_signal.Timestamp Timestamp, lesson_signal.SignalType Type, lesson_signal.student_id UserId  FROM lesson_signal LEFT JOIN student ON (lesson_signal.student_id = student.user_id) WHERE lesson_signal.Id=" + id + ";").ToList();
 
                 
-                return queryResult.AsList()[0];
+                return queryResult.Count > 0 ? queryResult[0] : null;
                
             }
         }
@@ -79,7 +74,7 @@ namespace ucubot.Controllers
         public async Task<IActionResult> CreateSignal(SlackMessage message)
         {
             var userId = message.user_id;
-            var signalType = message.text.ConvertSlackMessageToSignalType();
+            int signalType = (int) message.text.ConvertSlackMessageToSignalType();
 
 
             //TODO: add code to store above values
@@ -94,29 +89,46 @@ namespace ucubot.Controllers
                 catch (Exception e)
                 {
                     Console.WriteLine(e.ToString());
+                }
+                
+//                var check_UserId = new MySqlCommand("SELECT COUNT(*) FROM lesson_signal LEFT JOIN student ON (lesson_signal.student_id = student.user_id) WHERE student_id=@userID" , myConnection);
+//                check_UserId.Parameters.AddWithValue("@userID", userId);
+//                var UserExist = check_UserId.ExecuteScalar();
+
+                var check_UserId = new MySqlCommand("SELECT COUNT(*) FROM student WHERE user_id=?userID;" , myConnection);
+                check_UserId.Parameters.AddWithValue("?userID", userId);
+
+                long UserExist = (long) check_UserId.ExecuteScalar();
+
+
+                if(UserExist < 1)
+                {
+                    // Student with this ID doesn't exist
                     return BadRequest();
                 }
                 
-                var check_UserId = new MySqlCommand("SELECT COUNT(*) FROM lesson_signal WHERE student_id=(@userID)" , myConnection);
-                check_UserId.Parameters.AddWithValue("@userID", userId);
-                var UserExist = (int)check_UserId.ExecuteScalar();
+                var check_UserId2 = new MySqlCommand("SELECT COUNT(*) FROM lesson_signal WHERE student_id=?userID;" , myConnection);
+                check_UserId2.Parameters.AddWithValue("?userID", userId);
 
-                if(UserExist > 0)
+                var UserExist2 = (long) check_UserId2.ExecuteScalar();
+
+
+                if(UserExist2 > 0)
                 {
-                    // Student with this ID already exist
-                    return BadRequest();
+                    // Student with this ID already has a record
+                    return StatusCode(409);
                 }
 
-                // Student with this ID doesn't exist
+                // Student with this ID exist
                 const string mysqlCmdString =
-                    "INSERT INTO lesson_signal (user_id, SignalType) VALUES (@param1, @param2)";
+                    "INSERT INTO lesson_signal (student_id, SignalType) VALUES (?param1, ?param2);";
                 var cmd = new MySqlCommand(mysqlCmdString, myConnection);
-                cmd.Parameters.Add("@param1", MySqlDbType.Text).Value = userId;
-                cmd.Parameters.Add("@param2", MySqlDbType.Int32).Value = signalType;
-                cmd.CommandType = CommandType.Text;
-                cmd.ExecuteNonQuery();   
+                cmd.Parameters.Add("?param1", MySqlDbType.Text).Value = userId;
+                cmd.Parameters.Add("?param2", MySqlDbType.Int32).Value = (int) signalType;
+                cmd.ExecuteNonQuery();  
+                
+                return Accepted();
             }
-            return Accepted();
         }
 
         [HttpDelete("{id}")]
@@ -134,9 +146,19 @@ namespace ucubot.Controllers
                 catch (Exception e)
                 {
                     Console.WriteLine(e.ToString());
+  
+                }
+                var check_UserId = new MySqlCommand("SELECT COUNT(*) FROM lesson_signal LEFT JOIN student ON (lesson_signal.student_id = student.user_id) WHERE lesson_signal.Id=@ID;" , myConnection);
+                check_UserId.Parameters.AddWithValue("@ID", id);
+                var UserExist = (long) check_UserId.ExecuteScalar();
+
+                if(UserExist < 1)
+                {
+                    // Student with this ID doesn't exist
                     return BadRequest();
                 }
                 
+ 
                 var myCommand = new MySqlCommand("DELETE FROM lesson_signal WHERE Id=" + id + ";", myConnection);
 
                 myCommand.ExecuteNonQuery();

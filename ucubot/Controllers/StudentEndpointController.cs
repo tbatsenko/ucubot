@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data;
 using System.Linq;
 using System.Threading.Tasks;
 using Dapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using MySql.Data.MySqlClient;
 using ucubot.Model;
 
@@ -37,18 +39,14 @@ namespace ucubot.Controllers
                     Console.WriteLine(e.ToString());
                 }
 
-                // Write a query, which selects all data from the table lesson signal
-                //                                                             and stores it in a DataTable object
-               // conn is a SqlConnection
-                var queryResult = myConnection.Query<Student>("SELECT [Id], [FirstName],[LastName], [UserId] FROM student");
+                return  myConnection.Query<Student>("SELECT id Id, first_name FirstName, second_name LastName, user_id UserId FROM student;").ToList();
 
-                return queryResult;
             }
 
         }
 
         [HttpGet("{id}")]
-        public Student ShowRecord(long id)
+        public Student ShowRecord(int id)
         {
             var connectionString = _configuration.GetConnectionString("BotDatabase");
 
@@ -66,11 +64,11 @@ namespace ucubot.Controllers
                 // Write a query, which selects all data from the table lesson signal
                 //                                                             and stores it in a DataTable object
 
-                var queryResult = myConnection.Query<Student>("SELECT [Id], [FirstName],[LastName], [UserId] FROM student WHERE id=" + id);
+                Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 
-                
-                return queryResult.AsList()[0];
-               
+                var queryResult = myConnection.Query<Student>("SELECT id Id, first_name FirstName, second_name LastName, user_id UserId FROM student WHERE id=" + id + ";").ToList();
+
+                return queryResult.Count > 0 ? queryResult[0] : null;
             }
         }
 
@@ -78,7 +76,6 @@ namespace ucubot.Controllers
         public async Task<IActionResult> CreateRecord(Student student)
         {
             var userId = student.UserId;
-            var id = student.Id;
             var firstName = student.FirstName;
             var lastName = student.LastName;
 
@@ -100,9 +97,11 @@ namespace ucubot.Controllers
                     Implement function to update single record. Use attribute [HttpPut].
                     Use class Student as an argument. Use student.Id as update WHERE predicate.
                 */
-                var check_UserId = new MySqlCommand("SELECT COUNT(*) FROM student WHERE user_id=(@userID)" , myConnection);
-                check_UserId.Parameters.AddWithValue("@userID", userId);
-                var UserExist = (int)check_UserId.ExecuteScalar();
+                var check_UserId = new MySqlCommand("SELECT COUNT(*) FROM student WHERE user_id=?userID;" , myConnection);
+                check_UserId.Parameters.AddWithValue("?userID", userId);
+
+                var UserExist = (long) check_UserId.ExecuteScalar();
+
 
                 if(UserExist > 0)
                 {
@@ -111,14 +110,15 @@ namespace ucubot.Controllers
                 }
 
                 // Student with this userID doesn't exist
-                const string mysqlCmdString =
-                    "INSERT INTO student (user_id, SignalType) VALUES (@id, @first_name, @last_name, @user_id)";
+                string mysqlCmdString =
+                    "INSERT INTO student (first_name, second_name, user_id) VALUES (?param2, ?param3, ?param4);";
                 var cmd = new MySqlCommand(mysqlCmdString, myConnection);
-                cmd.Parameters.Add("@id", MySqlDbType.Int32).Value = userId;
-                cmd.Parameters.Add("@first_name", MySqlDbType.Text).Value = firstName;
-                cmd.Parameters.Add("@last_name", MySqlDbType.Text).Value = lastName;
-                cmd.Parameters.Add("@user_id", MySqlDbType.Text).Value = userId;
+
+                cmd.Parameters.Add("?param2", MySqlDbType.VarChar).Value = firstName;
+                cmd.Parameters.Add("?param3", MySqlDbType.VarChar).Value = lastName;
+                cmd.Parameters.Add("?param4", MySqlDbType.VarChar).Value = userId;
                 cmd.CommandType = CommandType.Text;
+
                 cmd.ExecuteNonQuery();   
             }
             return Accepted();
@@ -150,19 +150,22 @@ namespace ucubot.Controllers
                     Implement function to update single record. Use attribute [HttpPut].
                     Use class Student as an argument. Use student.Id as update WHERE predicate.
                 */
-                var check_UserId = new MySqlCommand("SELECT COUNT(*) FROM student WHERE user_id=(@userID)" , myConnection);
+                var check_UserId = new MySqlCommand("SELECT COUNT(*) FROM student WHERE user_id=(@userID);" , myConnection);
                 check_UserId.Parameters.AddWithValue("@userID", userId);
-                var UserExist = (int)check_UserId.ExecuteScalar();
+
+                var UserExist = (long) check_UserId.ExecuteScalar();
+
 
                 if(UserExist > 0)
                 {
                     // Student with this userID already exist
-                    var mysqlCmdString = "UPDATE student SET id=(@id), first_name=(@first_name), last_name=(@last_name), user_id=(@user_id) WHERE id=" + id;  
+                    var mysqlCmdString = "UPDATE student SET id=@id, first_name=@first_name, second_name=@last_name, user_id=@user_id WHERE id=@that_id;";  
                     var cmd = new MySqlCommand(mysqlCmdString, myConnection);
-                    cmd.Parameters.Add("@id", MySqlDbType.Int32).Value = userId;
-                    cmd.Parameters.Add("@first_name", MySqlDbType.Text).Value = firstName;
-                    cmd.Parameters.Add("@last_name", MySqlDbType.Text).Value = lastName;
-                    cmd.Parameters.Add("@user_id", MySqlDbType.Text).Value = userId;
+                    cmd.Parameters.Add("@id", MySqlDbType.Int32).Value = id;
+                    cmd.Parameters.Add("@that_id", MySqlDbType.Int32).Value = id;
+                    cmd.Parameters.Add("@first_name", MySqlDbType.VarChar).Value = firstName;
+                    cmd.Parameters.Add("@last_name", MySqlDbType.VarChar).Value = lastName;
+                    cmd.Parameters.Add("@user_id", MySqlDbType.VarChar).Value = userId;
                     cmd.CommandType = CommandType.Text;
                     cmd.ExecuteNonQuery();   
                     return Accepted();
@@ -195,14 +198,28 @@ namespace ucubot.Controllers
                     Console.WriteLine(e.ToString());
                     return BadRequest();
                 }
-                var check_UserId = new MySqlCommand("SELECT COUNT(*) FROM student WHERE id=(@Id)" , myConnection);
-                check_UserId.Parameters.AddWithValue("@Id", id);
-                var UserExist = (int)check_UserId.ExecuteScalar();
+                var check_UserId = new MySqlCommand("SELECT COUNT(*) FROM student WHERE id=?Id;" , myConnection);
+                check_UserId.Parameters.AddWithValue("?Id", id);
+
+                var UserExist = (long) check_UserId.ExecuteScalar();
+                
+                var check_UserId2 = new MySqlCommand("SELECT COUNT(*) FROM student WHERE id=?Id;" , myConnection);
+                check_UserId2.Parameters.AddWithValue("?Id", id);
+
+                var UserExist2 = (long) check_UserId.ExecuteScalar();
+
 
                 if(UserExist > 0)
                 {
-                    var myCommand = new MySqlCommand("DELETE FROM  WHERE Id=" + id + ";", myConnection);
-                    myCommand.ExecuteNonQuery();
+                    var myCommand = new MySqlCommand("DELETE FROM student WHERE id=" + id + ";", myConnection);
+                    try
+                    {
+                        myCommand.ExecuteNonQuery();
+                    }
+                    catch
+                    {
+                        return StatusCode(409);
+                    }
                 }
                 else
                 {
