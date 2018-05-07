@@ -7,7 +7,13 @@ services:
         depends_on:
             - app
     app:
+<<<<<<< HEAD
         build: ./ucubot
+=======
+        build:
+            context: ./ucubot
+            dockerfile: Dockerfile-test
+>>>>>>> learning
         ports:
             - "80"
         depends_on:
