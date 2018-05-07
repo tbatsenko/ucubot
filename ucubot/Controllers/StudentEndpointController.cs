@@ -1,4 +1,5 @@
 ﻿using System;
+using ucubot.Model;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -9,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using MySql.Data.MySqlClient;
-using ucubot.Model;
+
 
 namespace ucubot.Controllers
 {
