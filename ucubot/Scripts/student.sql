@@ -4,6 +4,7 @@ CREATE TABLE student (
      second_name VARCHAR(128) NOT NULL,
      user_id VARCHAR(128) NOT NULL,
      KEY (user_id),
-     CONSTRAINT PRIMARY KEY(id, user_id)
+     UNIQUE (user_id),
+     CONSTRAINT PRIMARY KEY(id)
 );
 

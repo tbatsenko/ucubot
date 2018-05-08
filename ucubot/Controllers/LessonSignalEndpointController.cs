@@ -41,7 +41,7 @@ namespace ucubot.Controllers
                 //                                                             and stores it in a DataTable object
                // conn is a SqlConnection
 
-                return myConnection.Query<LessonSignalDto>("SELECT lesson_signal.Id Id, lesson_signal.Timestamp Timestamp, lesson_signal.SignalType Type, lesson_signal.student_id UserId FROM lesson_signal LEFT JOIN student ON (lesson_signal.student_id = student.user_id);").ToList();
+                return myConnection.Query<LessonSignalDto>("SELECT lesson_signal.Id Id, lesson_signal.Timestamp Timestamp, lesson_signal.SignalType Type, student.user_id UserId FROM lesson_signal LEFT JOIN student ON (lesson_signal.student_id = student.id);").ToList();
             }
 
         }
@@ -62,7 +62,7 @@ namespace ucubot.Controllers
                     Console.WriteLine(e.ToString());
                 }
 
-                var queryResult = myConnection.Query<LessonSignalDto>("SELECT lesson_signal.Id Id, lesson_signal.Timestamp Timestamp, lesson_signal.SignalType Type, lesson_signal.student_id UserId  FROM lesson_signal LEFT JOIN student ON (lesson_signal.student_id = student.user_id) WHERE lesson_signal.Id=" + id + ";").ToList();
+                var queryResult = myConnection.Query<LessonSignalDto>("SELECT lesson_signal.Id Id, lesson_signal.Timestamp Timestamp, lesson_signal.SignalType Type, student.user_id UserId  FROM lesson_signal LEFT JOIN student ON (lesson_signal.student_id = student.id) WHERE lesson_signal.Id=" + id + ";").ToList();
 
                 
                 return queryResult.Count > 0 ? queryResult[0] : null;
@@ -107,11 +107,16 @@ namespace ucubot.Controllers
                     return BadRequest();
                 }
                 
-                var check_UserId2 = new MySqlCommand("SELECT COUNT(*) FROM lesson_signal WHERE student_id=?userID;" , myConnection);
-                check_UserId2.Parameters.AddWithValue("?userID", userId);
+                var getStudentId = new MySqlCommand("SELECT id FROM student WHERE user_id=?userID;" , myConnection);
+                getStudentId.Parameters.AddWithValue("?userID", userId);
+                
+                var student_id = getStudentId.ExecuteScalar();
+                
+                
+                var check_UserId2 = new MySqlCommand("SELECT COUNT(*) FROM lesson_signal WHERE student_id=?student_id;" , myConnection);
+                check_UserId2.Parameters.AddWithValue("?student_id", student_id);
 
-                var UserExist2 = (long) check_UserId2.ExecuteScalar();
-
+                long UserExist2 = (long) check_UserId2.ExecuteScalar();
 
                 if(UserExist2 > 0)
                 {
@@ -123,7 +128,7 @@ namespace ucubot.Controllers
                 const string mysqlCmdString =
                     "INSERT INTO lesson_signal (student_id, SignalType) VALUES (?param1, ?param2);";
                 var cmd = new MySqlCommand(mysqlCmdString, myConnection);
-                cmd.Parameters.Add("?param1", MySqlDbType.Text).Value = userId;
+                cmd.Parameters.Add("?param1", MySqlDbType.Int32).Value = student_id;
                 cmd.Parameters.Add("?param2", MySqlDbType.Int32).Value = (int) signalType;
                 cmd.ExecuteNonQuery();  
                 
@@ -148,7 +153,7 @@ namespace ucubot.Controllers
                     Console.WriteLine(e.ToString());
   
                 }
-                var check_UserId = new MySqlCommand("SELECT COUNT(*) FROM lesson_signal LEFT JOIN student ON (lesson_signal.student_id = student.user_id) WHERE lesson_signal.Id=@ID;" , myConnection);
+                var check_UserId = new MySqlCommand("SELECT COUNT(*) FROM lesson_signal LEFT JOIN student ON (lesson_signal.student_id = student.id) WHERE lesson_signal.Id=@ID;" , myConnection);
                 check_UserId.Parameters.AddWithValue("@ID", id);
                 var UserExist = (long) check_UserId.ExecuteScalar();
 
