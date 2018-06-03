@@ -9,7 +9,7 @@ using Dapper;
 
 namespace ucubot.Database
 {
-    public abstract class LessonSignalRepository<T> : ILessonSignalRepository<T> where T : LessonSignalDto
+    public class LessonSignalRepository : ILessonSignalRepository
     {
         public IEnumerable<LessonSignalDto> GetSignals(MySqlConnection connection)
         {
@@ -51,16 +51,16 @@ namespace ucubot.Database
             var studentId = getStudentId.ExecuteScalar();
             
             
-            var checkUserId2 = new MySqlCommand("SELECT COUNT(*) FROM lesson_signal WHERE student_id=?student_id;" , connection);
-            checkUserId2.Parameters.AddWithValue("?student_id", studentId);
-
-            var userExist2 = (long) checkUserId2.ExecuteScalar();
-
-            if(userExist2 > 0)
-            {
-                // Student with this ID already has a record
-                return 409;
-            }
+//            var checkUserId2 = new MySqlCommand("SELECT COUNT(*) FROM lesson_signal WHERE student_id=?student_id;" , connection);
+//            checkUserId2.Parameters.AddWithValue("?student_id", studentId);
+//
+//            var userExist2 = (long) checkUserId2.ExecuteScalar();
+//
+//            if(userExist2 > 0)
+//            {
+//                // Student with this ID already has a record
+//                return 409;
+//            }
 
             // Student with this ID exist
             const string mysqlCmdString =

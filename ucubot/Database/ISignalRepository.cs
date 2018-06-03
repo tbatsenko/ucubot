@@ -4,7 +4,7 @@ using ucubot.Model;
 
 namespace ucubot.Database
 {
-    public interface ISignalRepository <T> where T : StudentSignal
+    public interface ISignalRepository
     {
         IEnumerable<StudentSignal> GetSignals(MySqlConnection connection);
     }

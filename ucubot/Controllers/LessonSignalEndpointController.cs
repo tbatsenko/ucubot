@@ -16,12 +16,12 @@ namespace ucubot.Controllers
     {
         private readonly IConfiguration _configuration;
         
-        private readonly LessonSignalRepository<LessonSignalDto> _repository;
+        private readonly ILessonSignalRepository _repository;
 
-        public LessonSignalEndpointController(IConfiguration configuration, LessonSignalRepository<LessonSignalDto> repository)
+        public LessonSignalEndpointController(IConfiguration configuration, ILessonSignalRepository repository)
         {
             _configuration = configuration;
-            _repository = _repository;
+            _repository = repository;
         }
         
         [HttpGet]

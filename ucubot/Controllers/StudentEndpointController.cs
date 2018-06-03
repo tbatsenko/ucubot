@@ -13,6 +13,7 @@ using MySql.Data.MySqlClient;
 using ucubot.Database;
 
 
+
 namespace ucubot.Controllers
 {
     [Route("api/[controller]")]
@@ -21,9 +22,9 @@ namespace ucubot.Controllers
     {
         private readonly IConfiguration _configuration;
         
-        private readonly StudentRepository<Student> _repository;
+        private readonly IStudentRepository _repository;
 
-        public StudentEndpointController(IConfiguration configuration, StudentRepository<Student> repository)
+        public StudentEndpointController(IConfiguration configuration, IStudentRepository repository)
         {
             _configuration = configuration;
             _repository = repository;
@@ -99,7 +100,7 @@ namespace ucubot.Controllers
 
                 if (_repository.Create(myConnection, student) == 409)
                 {
-                    return BadRequest();
+                    return StatusCode(409);
                 }
 
                 return Accepted();

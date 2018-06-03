@@ -12,6 +12,7 @@ using Newtonsoft.Json.Serialization;
 using Ninject;
 using Ninject.Activation;
 using Ninject.Infrastructure.Disposal;
+using ucubot.Database;
 using ucubot.Infrastructure;
 using ucubot.Model;
 
@@ -58,7 +59,12 @@ namespace ucubot
             services.AddRequestScopingMiddleware(() => scopeProvider.Value = new Scope());
 //            services.AddCustomControllerActivation(Resolve);
 //            services.AddCustomViewComponentActivation(Resolve);
+
             services.AddSingleton<IConfiguration>(f => Configuration);
+
+            services.AddSingleton<IStudentRepository, StudentRepository>();
+            services.AddSingleton<ILessonSignalRepository, LessonSignalRepository>();
+            services.AddSingleton<ISignalRepository, SignalRepository>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -94,7 +100,7 @@ namespace ucubot
             config.Bind<ILoggerFactory>().ToConstant(loggerFactory);
 
             config.Bind<IConfiguration>().ToConstant(Configuration);
-
+            
             return config.BuildReadonlyKernel();
         }
 

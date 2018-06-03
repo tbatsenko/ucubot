@@ -4,15 +4,15 @@ using ucubot.Model;
 
 namespace ucubot.Database
 {
-    public interface IStudentRepository <T> where T : Student
+    public interface IStudentRepository
     {
         IEnumerable<Student> GetStudents(MySqlConnection connection);
 
         Student GetStudent(MySqlConnection connection, int id);
 
-        int Create(MySqlConnection connection, T entity);
+        int Create(MySqlConnection connection, Student entity);
         
-        int Update(MySqlConnection connection, T entity);
+        int Update(MySqlConnection connection, Student entity);
 
         int Delete(MySqlConnection connection, long id);
     

@@ -21,9 +21,9 @@ namespace ucubot.Controllers
     {
         private readonly IConfiguration _configuration;
 
-        private readonly SignalRepository<StudentSignal> _repository;
+        private readonly ISignalRepository _repository;
 
-        public StudentSignalsEndpointController(IConfiguration configuration, SignalRepository<StudentSignal> repository)
+        public StudentSignalsEndpointController(IConfiguration configuration, ISignalRepository repository)
         {
             _configuration = configuration;
             _repository = repository;

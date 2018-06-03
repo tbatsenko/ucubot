@@ -9,7 +9,7 @@ using Dapper;
 
 namespace ucubot.Database
 {
-    public abstract class StudentRepository<T> : IStudentRepository<T> where T : Student
+    public class StudentRepository : IStudentRepository
     {
         public IEnumerable<Student> GetStudents(MySqlConnection connection)
         {
@@ -25,7 +25,7 @@ namespace ucubot.Database
             return queryResult.Count > 0 ? queryResult[0] : null;
         }
 
-        public int Create(MySqlConnection connection, T entity)
+        public int Create(MySqlConnection connection, Student entity)
         {
             
             var userId = entity.UserId;
@@ -59,7 +59,7 @@ namespace ucubot.Database
             return 200;
         }
 
-        public int Update(MySqlConnection connection, T entity)
+        public int Update(MySqlConnection connection, Student entity)
         {
             var id = entity.Id;
             var userId = entity.UserId;

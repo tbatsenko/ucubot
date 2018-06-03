@@ -9,11 +9,11 @@ using Dapper;
 
 namespace ucubot.Database
 {
-    public abstract class SignalRepository<T> : ISignalRepository<T> where T : StudentSignal
+    public class SignalRepository : ISignalRepository
     {
         public IEnumerable<StudentSignal> GetSignals(MySqlConnection connection)
         {
-            return connection.Query<StudentSignal>("SELECT student_signals.Timestamp first_name, student_signals.last_name LastName, student_signals.signal_type  SignalType, student_signals.count Count FROM student_signals").ToList();            
+            return connection.Query<StudentSignal>("SELECT student_signals.first_name first_name, student_signals.second_name LastName, student_signals.signal_type SignalType, student_signals.count Count FROM student_signals").ToList();            
         }
     }
 }
