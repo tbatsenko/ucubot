@@ -1,10 +1,9 @@
--- Connect to MySQL. Write a select query which aggregates a number
--- of lesson signals by type by student. 
--- 
--- Transform numerical signal types
--- into meaningful type names (Simple, Normal, Hard). Save this select
--- as a view student signals. Save your code into Scripts/student-signals.sql.
+USE ucubot;
 
 CREATE VIEW student_signals AS 
-SELECT id, column2, ...
-FROM student
+    SELECT student.first_name, student.last_name,
+    (CASE lesson_signal.SignalType WHEN -1 THEN "simple" WHEN 0 THEN "normal" WHEN 1 THEN "hard" END) AS signalType,
+       COUNT(lesson_signal.student_id) AS count
+   FROM student 
+    JOIN lesson_signal ON lesson_signal.student_id = student.id 
+    GROUP BY lesson_signal.SignalType, student.user_id;
