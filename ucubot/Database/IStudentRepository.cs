@@ -6,15 +6,15 @@ namespace ucubot.Database
 {
     public interface IStudentRepository
     {
-        IEnumerable<Student> GetStudents(MySqlConnection connection);
+        IEnumerable<Student> GetStudents();
 
-        Student GetStudent(MySqlConnection connection, int id);
+        Student GetStudent(int id);
 
-        int Create(MySqlConnection connection, Student entity);
+        int Create(Student entity);
         
-        int Update(MySqlConnection connection, Student entity);
+        int Update(Student entity);
 
-        int Delete(MySqlConnection connection, long id);
+        int Delete(long id);
     
     }
 }

@@ -14,128 +14,65 @@ namespace ucubot.Controllers
     [Route("api/[controller]")]
     public class LessonSignalEndpointController : Controller
     {
-        private readonly IConfiguration _configuration;
         
         private readonly ILessonSignalRepository _repository;
 
-        public LessonSignalEndpointController(IConfiguration configuration, ILessonSignalRepository repository)
+        public LessonSignalEndpointController(ILessonSignalRepository repository)
         {
-            _configuration = configuration;
             _repository = repository;
         }
         
         [HttpGet]
         public IEnumerable<LessonSignalDto> ShowSignals()
         {
-            var connectionString = _configuration.GetConnectionString("BotDatabase");
-
-            using (var myConnection = new MySqlConnection(connectionString))
-            {
-                try
-                {
-                    myConnection.Open();
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.ToString());
-                }
-
-                return _repository.GetSignals(myConnection);
-                   
-            }
-
+            return _repository.GetSignals();
         }
 
         [HttpGet("{id}")]
         public LessonSignalDto ShowSignal(long id)
         {
-            var connectionString = _configuration.GetConnectionString("BotDatabase");
-
-            using (var myConnection = new MySqlConnection(connectionString))
-            {
-                try
-                {
-                    myConnection.Open();
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.ToString());
-                }
-
-                return _repository.GetSignal(myConnection, id);
-
-            }
+            return _repository.GetSignal(id);
         }
 
         [HttpPost]
         public async Task<IActionResult> CreateSignal(SlackMessage message)
         {
-            var connectionString = _configuration.GetConnectionString("BotDatabase");
-
-            using (var myConnection = new MySqlConnection(connectionString))
+            var result = _repository.CreateSignal(message);
+            
+            switch (result)
             {
-                try
-                {
-                    myConnection.Open();
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.ToString());
-                }
-
-                var result = _repository.CreateSignal(myConnection, message);
-                
-                switch (result)
-                {
-                    case 400:
-                        // Student with this ID doesn't exist
-                        return BadRequest();
-                    case 409:
-                        // Student with this ID already has a record
-                        return StatusCode(409);
-                        
-                    case 200:
-                        return Accepted();
-                        
-                    default: StatusCode(result);
-                        break;
-                }
-
-                return null;
+                case 400:
+                    // Student with this ID doesn't exist
+                    return BadRequest();
+                case 409:
+                    // Student with this ID already has a record
+                    return StatusCode(409);
+                    
+                case 200:
+                    return Accepted();
+                    
+                default: StatusCode(result);
+                    break;
             }
+
+            return null;
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> RemoveSignal(long id)
         {
-            //TODO: add code to delete a record with the given id
-            var connectionString = _configuration.GetConnectionString("BotDatabase");
+            var result = _repository.DeleteSignal(id);
 
-            using (var myConnection = new MySqlConnection(connectionString))
+            switch (result)
             {
-                try
-                {
-                    myConnection.Open();
-                }
-                catch (Exception e)
-                {
-                    Console.WriteLine(e.ToString());
-  
-                }
-                
+                case 400:
+                    return BadRequest();
+                case 200:
+                    return Accepted();
 
-                var result = _repository.DeleteSignal(myConnection, id);
-
-                switch (result)
-                {
-                    case 400:
-                        return BadRequest();
-                    case 200:
-                        return Accepted();
-                        
-                    default: StatusCode(result);
-                        break;
-                }
+                default:
+                    StatusCode(result);
+                    break;
             }
 
             return null;

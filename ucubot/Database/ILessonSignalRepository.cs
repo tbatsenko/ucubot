@@ -6,13 +6,13 @@ namespace ucubot.Database
 {
     public interface ILessonSignalRepository
     {
-        IEnumerable<LessonSignalDto> GetSignals(MySqlConnection connection);
+        IEnumerable<LessonSignalDto> GetSignals();
 
-        LessonSignalDto GetSignal(MySqlConnection connection, long id);
+        LessonSignalDto GetSignal(long id);
 
-        int CreateSignal(MySqlConnection connection, SlackMessage message);
+        int CreateSignal(SlackMessage message);
 
-        int DeleteSignal(MySqlConnection connection, long id);
+        int DeleteSignal(long id);
     
     }
 }
